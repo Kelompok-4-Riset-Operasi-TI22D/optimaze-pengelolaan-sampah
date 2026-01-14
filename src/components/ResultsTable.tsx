@@ -3,10 +3,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Truck, Recycle, Factory, GraduationCap, TrendingUp } from 'lucide-react';
-import { Phase1Result, formatRupiah, SectorId } from '@/lib/optimization';
+import { Phase1Result, formatRupiah, SectorId } from '@/lib/simplexSolver';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
-interface Phase1ResultsProps {
+interface ResultsTableProps {
   result: Phase1Result;
 }
 
@@ -24,7 +24,7 @@ const CHART_COLORS = [
   'hsl(152, 69%, 31%)',  // Success - Green
 ];
 
-export function Phase1Results({ result }: Phase1ResultsProps) {
+export function ResultsTable({ result }: ResultsTableProps) {
   const chartData = result.allocations.map((a, idx) => ({
     name: a.sectorName,
     value: a.amount,

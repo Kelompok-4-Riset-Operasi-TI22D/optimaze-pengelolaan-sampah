@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Header } from '@/components/Header';
-import { BudgetInput } from '@/components/BudgetInput';
-import { DatasetUploader } from '@/components/DatasetUploader';
-import { Phase1Results } from '@/components/Phase1Results';
-import { Phase2Results } from '@/components/Phase2Results';
+import { LocationInput } from '@/components/LocationInput';
+import { DatasetUpload } from '@/components/DatasetUpload';
+import { ResultsTable } from '@/components/ResultsTable';
+import { SimplexTableau } from '@/components/SimplexTableau';
+import { DistributionCharts } from '@/components/DistributionCharts';
+import { Calculator } from '@/components/Calculator';
 import { MethodologyInfo } from '@/components/MethodologyInfo';
 import { Button } from '@/components/ui/button';
 import { Play, RotateCcw } from 'lucide-react';
@@ -13,12 +15,13 @@ import {
   runPhase2Optimization,
   Phase1Result,
   Phase2Result 
-} from '@/lib/optimization';
+} from '@/lib/simplexSolver';
 
 const DEFAULT_BUDGET = 91.5e9; // Rp91,5 Miliar
 
 export default function Index() {
   const [budget, setBudget] = useState(DEFAULT_BUDGET);
+  const [location, setLocation] = useState('Kota Padang');
   const [datasetSummary, setDatasetSummary] = useState<DatasetSummary | null>(null);
   const [phase1Result, setPhase1Result] = useState<Phase1Result | null>(null);
   const [phase2Result, setPhase2Result] = useState<Phase2Result | null>(null);
@@ -61,7 +64,7 @@ export default function Index() {
             Sistem Pendukung Keputusan
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Optimasi Alokasi Anggaran Pengelolaan Sampah Kota Padang
+            Optimasi Alokasi Anggaran Pengelolaan Sampah {location}
             menggunakan metode <span className="text-primary font-semibold">Two-Phase Optimization</span>
           </p>
         </div>
@@ -69,8 +72,13 @@ export default function Index() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Inputs */}
           <div className="lg:col-span-1 space-y-6">
-            <BudgetInput budget={budget} onBudgetChange={setBudget} />
-            <DatasetUploader 
+            <LocationInput 
+              budget={budget} 
+              onBudgetChange={setBudget}
+              location={location}
+              onLocationChange={setLocation}
+            />
+            <DatasetUpload 
               onDatasetLoaded={setDatasetSummary} 
               totalBudget={budget}
             />
@@ -125,8 +133,9 @@ export default function Index() {
               </div>
             ) : (
               <>
-                {phase1Result && <Phase1Results result={phase1Result} />}
-                {phase2Result && <Phase2Results result={phase2Result} />}
+                {phase1Result && <ResultsTable result={phase1Result} />}
+                {phase1Result && <DistributionCharts result={phase1Result} />}
+                {phase2Result && <SimplexTableau result={phase2Result} />}
               </>
             )}
           </div>
