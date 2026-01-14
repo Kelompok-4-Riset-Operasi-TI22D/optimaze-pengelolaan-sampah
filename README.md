@@ -30,8 +30,8 @@ Aplikasi ini mendukung multi-sektor pengelolaan sampah, visualisasi hasil secara
 
 ### Setup
 ```bash
-git clone https://github.com/Kelompok-4-Riset-Operasi-TI22D/optimazepengelolaansampah
-cd optimazepengelolaansampah
+git clone https://github.com/Kelompok-4-Riset-Operasi-TI22D/optimaze-pengelolaan-sampah
+cd optimaze-pengelolaan-sampah
 npm install
 ```
 
