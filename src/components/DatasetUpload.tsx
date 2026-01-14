@@ -3,14 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Upload, FileSpreadsheet, Check, X, Database } from 'lucide-react';
-import { DatasetRow, DatasetSummary, parseCSV, normalizeDataset } from '@/lib/optimization';
+import { DatasetRow, DatasetSummary, parseCSV, normalizeDataset } from '@/lib/simplexSolver';
 
-interface DatasetUploaderProps {
+interface DatasetUploadProps {
   onDatasetLoaded: (summary: DatasetSummary | null) => void;
   totalBudget: number;
 }
 
-export function DatasetUploader({ onDatasetLoaded, totalBudget }: DatasetUploaderProps) {
+export function DatasetUpload({ onDatasetLoaded, totalBudget }: DatasetUploadProps) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [summary, setSummary] = useState<DatasetSummary | null>(null);
   const [error, setError] = useState<string | null>(null);

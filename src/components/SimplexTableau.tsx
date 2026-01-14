@@ -3,9 +3,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Truck, Recycle, Factory, GraduationCap, Clock, AlertCircle } from 'lucide-react';
-import { Phase2Result, SectorId } from '@/lib/optimization';
+import { Phase2Result, SectorId } from '@/lib/simplexSolver';
 
-interface Phase2ResultsProps {
+interface SimplexTableauProps {
   result: Phase2Result;
 }
 
@@ -23,7 +23,7 @@ const PRIORITY_COLORS: Record<number, { bg: string; text: string; label: string 
   4: { bg: 'bg-muted', text: 'text-muted-foreground', label: 'Rendah' },
 };
 
-export function Phase2Results({ result }: Phase2ResultsProps) {
+export function SimplexTableau({ result }: SimplexTableauProps) {
   return (
     <Card className="data-card">
       <CardHeader className="pb-4">
