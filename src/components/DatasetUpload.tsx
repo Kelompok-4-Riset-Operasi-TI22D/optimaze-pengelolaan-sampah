@@ -138,16 +138,6 @@ export function DatasetUpload({ onDatasetLoaded, totalBudget }: DatasetUploadPro
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-secondary rounded-lg">
-                <p className="text-2xl font-bold">{summary.totalRows}</p>
-                <p className="text-xs text-muted-foreground">Jumlah Baris</p>
-              </div>
-              <div className="p-3 bg-secondary rounded-lg">
-                <p className="text-2xl font-bold">{summary.totalColumns}</p>
-                <p className="text-xs text-muted-foreground">Jumlah Kolom</p>
-              </div>
-            </div>
 
             <div>
               <p className="text-sm font-medium mb-2">Contoh Data (5 Baris Pertama)</p>
