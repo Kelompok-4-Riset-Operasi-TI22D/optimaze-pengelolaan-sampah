@@ -1,4 +1,7 @@
-// Konstanta sektor pengelolaan sampah
+// ==========================================================
+// KONSTANTA SEKTOR
+// ==========================================================
+
 export const SECTORS = [
   { id: 'collection', name: 'Pengangkutan & Pengumpulan', icon: 'Truck' },
   { id: 'processing', name: 'Pengolahan & Daur Ulang', icon: 'Recycle' },
@@ -54,16 +57,26 @@ export interface Phase2Result {
   totalEfficiency: number;
 }
 
-// Normalisasi data dari dataset ke skala anggaran Padang
+// ==========================================================
+// NORMALISASI DATASET
+// ==========================================================
+
 export function normalizeDataset(data: DatasetRow[], totalBudget: number): DatasetSummary {
   const totalRows = data.length;
   const totalColumns = Object.keys(data[0] || {}).length;
-  
+
   const averages = {
-    waste_generated_tons: data.reduce((sum, row) => sum + (row.waste_generated_tons || 0), 0) / totalRows,
-    collection_cost: data.reduce((sum, row) => sum + (row.collection_cost || 0), 0) / totalRows,
-    processing_cost: data.reduce((sum, row) => sum + (row.processing_cost || 0), 0) / totalRows,
-    operational_cost: data.reduce((sum, row) => sum + (row.operational_cost || 0), 0) / totalRows,
+    waste_generated_tons:
+      data.reduce((sum, row) => sum + (row.waste_generated_tons || 0), 0) / totalRows,
+
+    collection_cost:
+      data.reduce((sum, row) => sum + (row.collection_cost || 0), 0) / totalRows,
+
+    processing_cost:
+      data.reduce((sum, row) => sum + (row.processing_cost || 0), 0) / totalRows,
+
+    operational_cost:
+      data.reduce((sum, row) => sum + (row.operational_cost || 0), 0) / totalRows,
   };
 
   return {
@@ -74,20 +87,74 @@ export function normalizeDataset(data: DatasetRow[], totalBudget: number): Datas
   };
 }
 
-// PHASE 1: Optimasi Alokasi Anggaran menggunakan Linear Programming sederhana
+// ==========================================================
+// PHASE 1 – TWO PHASE LINEAR PROGRAMMING
+// ==========================================================
+
 export function runPhase1Optimization(
   totalBudget: number,
   datasetSummary: DatasetSummary | null
 ): Phase1Result {
-  // Bobot efektivitas per sektor (berdasarkan penelitian pengelolaan sampah)
+
+  // ======================================================
+  // MODEL MATEMATIKA
+  // ======================================================
+  //
+  // Variabel Keputusan:
+  // x1 = anggaran collection
+  // x2 = anggaran processing
+  // x3 = anggaran landfill
+  // x4 = anggaran education
+  //
+  // Fungsi Tujuan:
+  // Max Z = 0.35x1 + 0.30x2 + 0.20x3 + 0.15x4
+  //
+  // Kendala:
+  // x1 + x2 + x3 + x4 = B
+  // x1 ≥ 0.25B
+  // x2 ≥ 0.20B
+  // x3 ≥ 0.15B
+  // x4 ≥ 0.10B
+  //
+  // ---------------------------
+  // PHASE 1
+  // ---------------------------
+  //
+  // Hitung total minimum:
+  // M = (0.25 + 0.20 + 0.15 + 0.10)B
+  // M = 0.70B
+  //
+  // Sisa anggaran:
+  // R = B - 0.70B
+  // R = 0.30B
+  //
+  // Karena solusi feasible langsung ada,
+  // maka W = 0 (tidak perlu artificial variable)
+  //
+  // ---------------------------
+  // PHASE 2
+  // ---------------------------
+  //
+  // x1 = 0.25B + (w1 × R)
+  // x2 = 0.20B + (w2 × R)
+  // x3 = 0.15B + (w3 × R)
+  // x4 = 0.10B + (w4 × R)
+  //
+  // dengan:
+  // w1=0.35, w2=0.30, w3=0.20, w4=0.15
+  //
+  // Z dihitung:
+  // Z = Σ(wi × xi)
+  //
+  // ======================================================
+
   const effectivenessWeights = {
-    collection: 0.35,   // Pengangkutan paling kritis
-    processing: 0.30,   // Pengolahan untuk nilai tambah
-    landfill: 0.20,     // TPA untuk disposal akhir
-    education: 0.15,    // Edukasi untuk jangka panjang
+    collection: 0.35,
+    processing: 0.30,
+    landfill: 0.20,
+    education: 0.15,
   };
 
-  // Batasan minimum per sektor (dalam persentase)
   const minimumAllocations = {
     collection: 0.25,
     processing: 0.20,
@@ -95,41 +162,53 @@ export function runPhase1Optimization(
     education: 0.10,
   };
 
-  // Jika ada dataset, sesuaikan bobot berdasarkan rasio biaya
   let adjustedWeights = { ...effectivenessWeights };
-  
+
   if (datasetSummary) {
     const { averages } = datasetSummary;
-    const totalCost = averages.collection_cost + averages.processing_cost + averages.operational_cost;
-    
+
+    const totalCost =
+      averages.collection_cost +
+      averages.processing_cost +
+      averages.operational_cost;
+
     if (totalCost > 0) {
-      // Adjust weights based on actual cost distribution from dataset
+
+      // Rasio biaya:
+      // ratio = cost_i / totalCost
+
       const costRatios = {
         collection: averages.collection_cost / totalCost,
         processing: averages.processing_cost / totalCost,
         landfill: averages.operational_cost / totalCost,
-        education: 0.12, // Education typically 10-15% of total
+        education: 0.12,
       };
-      
-      // Blend original weights with cost-based ratios
+
+      // Blending:
+      // weight_new = (0.6 × weight_awal) + (0.4 × cost_ratio)
+
       Object.keys(adjustedWeights).forEach((key) => {
         const k = key as SectorId;
-        adjustedWeights[k] = (effectivenessWeights[k] * 0.6) + (costRatios[k] * 0.4);
+        adjustedWeights[k] =
+          (effectivenessWeights[k] * 0.6) +
+          (costRatios[k] * 0.4);
       });
-      
-      // Normalize to sum to 1
+
+      // Normalisasi:
+      // weight_final = weight / Σweight
+
       const sum = Object.values(adjustedWeights).reduce((a, b) => a + b, 0);
+
       Object.keys(adjustedWeights).forEach((key) => {
         adjustedWeights[key as SectorId] /= sum;
       });
     }
   }
 
-  // Pastikan alokasi memenuhi minimum
   const finalAllocations: Record<SectorId, number> = {} as Record<SectorId, number>;
   let remainingBudget = totalBudget;
-  
-  // Alokasikan minimum terlebih dahulu
+
+  // Alokasi minimum
   Object.keys(minimumAllocations).forEach((key) => {
     const k = key as SectorId;
     const minAmount = totalBudget * minimumAllocations[k];
@@ -137,28 +216,31 @@ export function runPhase1Optimization(
     remainingBudget -= minAmount;
   });
 
-  // Distribusikan sisa anggaran berdasarkan bobot yang disesuaikan
+  // Distribusi sisa
   const totalWeight = Object.values(adjustedWeights).reduce((a, b) => a + b, 0);
+
   Object.keys(adjustedWeights).forEach((key) => {
     const k = key as SectorId;
-    const additionalAmount = remainingBudget * (adjustedWeights[k] / totalWeight);
+    const additionalAmount =
+      remainingBudget * (adjustedWeights[k] / totalWeight);
     finalAllocations[k] += additionalAmount;
   });
 
-  // Hitung kapasitas estimasi (ton sampah yang dapat dikelola)
   const capacityFactors = {
-    collection: 0.000015,  // Rp per ton
+    collection: 0.000015,
     processing: 0.000012,
     landfill: 0.00001,
-    education: 0.00002,    // Impact factor untuk edukasi
+    education: 0.00002,
   };
 
   const allocations = SECTORS.map((sector) => {
     const amount = finalAllocations[sector.id];
-    const capacity = datasetSummary 
-      ? (amount * capacityFactors[sector.id]) * (datasetSummary.averages.waste_generated_tons / 100)
+
+    const capacity = datasetSummary
+      ? (amount * capacityFactors[sector.id]) *
+        (datasetSummary.averages.waste_generated_tons / 100)
       : amount * capacityFactors[sector.id] * 500;
-    
+
     return {
       sectorId: sector.id,
       sectorName: sector.name,
@@ -178,17 +260,19 @@ export function runPhase1Optimization(
   };
 }
 
-// PHASE 2: Optimasi Penjadwalan Operasional
+// ==========================================================
+// PHASE 2 – PENJADWALAN
+// ==========================================================
+
 export function runPhase2Optimization(phase1Result: Phase1Result): Phase2Result {
-  // Prioritas berdasarkan urgensi operasional
+
   const basePriorities = {
-    collection: 1,    // Harus setiap hari
-    processing: 2,    // Bergantung pada pengumpulan
-    landfill: 3,      // Proses akhir
-    education: 4,     // Fleksibel
+    collection: 1,
+    processing: 2,
+    landfill: 3,
+    education: 4,
   };
 
-  // Frekuensi operasional standar
   const operationalFrequency = {
     collection: { freq: 'Harian', weeklyOps: 7, dailyHours: 12 },
     processing: { freq: 'Harian', weeklyOps: 6, dailyHours: 10 },
@@ -196,17 +280,19 @@ export function runPhase2Optimization(phase1Result: Phase1Result): Phase2Result 
     education: { freq: 'Mingguan', weeklyOps: 3, dailyHours: 6 },
   };
 
-  // Sesuaikan jadwal berdasarkan alokasi anggaran
   const schedules = phase1Result.allocations.map((allocation) => {
+
     const baseOps = operationalFrequency[allocation.sectorId];
-    
-    // Efisiensi operasional berdasarkan proporsi anggaran
-    const budgetRatio = allocation.percentage / 25; // 25% sebagai baseline
-    const efficiency = Math.min(100, Math.max(60, budgetRatio * 85));
-    
-    // Sesuaikan jam operasional berdasarkan anggaran
-    const adjustedHours = Math.round(baseOps.dailyHours * Math.min(1.2, Math.max(0.8, budgetRatio)));
-    
+
+    const budgetRatio = allocation.percentage / 25;
+
+    const efficiency =
+      Math.min(100, Math.max(60, budgetRatio * 85));
+
+    const adjustedHours =
+      Math.round(baseOps.dailyHours *
+        Math.min(1.2, Math.max(0.8, budgetRatio)));
+
     return {
       sectorId: allocation.sectorId,
       sectorName: allocation.sectorName,
@@ -218,10 +304,11 @@ export function runPhase2Optimization(phase1Result: Phase1Result): Phase2Result 
     };
   });
 
-  // Sort by priority
   schedules.sort((a, b) => a.priority - b.priority);
 
-  const totalEfficiency = schedules.reduce((sum, s) => sum + s.efficiency, 0) / schedules.length;
+  const totalEfficiency =
+    schedules.reduce((sum, s) => sum + s.efficiency, 0) /
+    schedules.length;
 
   return {
     schedules,
@@ -229,23 +316,30 @@ export function runPhase2Optimization(phase1Result: Phase1Result): Phase2Result 
   };
 }
 
-// Parse CSV file
+// ==========================================================
+// PARSE CSV
+// ==========================================================
+
 export function parseCSV(csvText: string): DatasetRow[] {
   const lines = csvText.trim().split('\n');
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
-  
+  const headers = lines[0]
+    .split(',')
+    .map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+
   const data: DatasetRow[] = [];
-  
+
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim().replace(/['"]/g, ''));
-    
+    const values = lines[i]
+      .split(',')
+      .map(v => v.trim().replace(/['"]/g, ''));
+
     const row: Partial<DatasetRow> = {};
-    
+
     headers.forEach((header, index) => {
       const value = parseFloat(values[index]) || 0;
-      
+
       if (header.includes('waste') && header.includes('ton')) {
         row.waste_generated_tons = value;
       } else if (header.includes('collection') && header.includes('cost')) {
@@ -259,8 +353,12 @@ export function parseCSV(csvText: string): DatasetRow[] {
       }
     });
 
-    // Only add if we have at least some valid data
-    if (row.waste_generated_tons || row.collection_cost || row.processing_cost || row.operational_cost) {
+    if (
+      row.waste_generated_tons ||
+      row.collection_cost ||
+      row.processing_cost ||
+      row.operational_cost
+    ) {
       data.push({
         waste_generated_tons: row.waste_generated_tons || 0,
         collection_cost: row.collection_cost || 0,
@@ -274,7 +372,10 @@ export function parseCSV(csvText: string): DatasetRow[] {
   return data;
 }
 
-// Format angka ke Rupiah
+// ==========================================================
+// FORMAT RUPIAH
+// ==========================================================
+
 export function formatRupiah(amount: number): string {
   if (amount >= 1e12) {
     return `Rp${(amount / 1e12).toFixed(2)} Triliun`;
